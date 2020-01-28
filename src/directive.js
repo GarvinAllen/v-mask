@@ -64,7 +64,7 @@ function mergeMaskReplacers(maskReplacers) {
   return Object.keys(maskReplacers).reduce((updatedMaskReplacers, key) => {
     const value = maskReplacers[key];
 
-    if (!(value instanceof Regex)) {
+    if (!(value instanceof RegExp)) {
       return updatedMaskReplacers;
     }
 

@@ -405,7 +405,7 @@ function mergeMaskReplacers(maskReplacers) {
   return Object.keys(maskReplacers).reduce(function (updatedMaskReplacers, key) {
     var value = maskReplacers[key];
 
-    if (!(value instanceof Regex)) {
+    if (!(value instanceof RegExp)) {
       return updatedMaskReplacers;
     }
 
