@@ -415,8 +415,8 @@ function mergeMaskReplacers(maskReplacers) {
 }
 
 function createDirective() {
-  var options = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
-  var instanceMaskReplacers = mergeMaskReplacers(options && options.placeholders || null);
+  var directiveOptions = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+  var instanceMaskReplacers = mergeMaskReplacers(directiveOptions && directiveOptions.placeholders || null);
   return {
     bind: function bind(el, _ref) {
       var value = _ref.value;
