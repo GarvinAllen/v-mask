@@ -46,13 +46,13 @@ function _objectSpread2(target) {
     var source = arguments[i] != null ? arguments[i] : {};
 
     if (i % 2) {
-      ownKeys(source, true).forEach(function (key) {
+      ownKeys(Object(source), true).forEach(function (key) {
         _defineProperty(target, key, source[key]);
       });
     } else if (Object.getOwnPropertyDescriptors) {
       Object.defineProperties(target, Object.getOwnPropertyDescriptors(source));
     } else {
-      ownKeys(source).forEach(function (key) {
+      ownKeys(Object(source)).forEach(function (key) {
         Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key));
       });
     }
@@ -291,10 +291,11 @@ var castToRegexp = function castToRegexp(char) {
 };
 
 function stringMaskToRegExpMask(stringMask) {
+  var maskReplacers = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : defaultMaskReplacers;
   return stringMask.split('').map(function (char, index, array) {
-    var maskChar = defaultMaskReplacers[char] || char;
+    var maskChar = maskReplacers[char] || char;
     var previousChar = array[index - 1];
-    var previousMaskChar = defaultMaskReplacers[previousChar] || previousChar;
+    var previousMaskChar = maskReplacers[previousChar] || previousChar;
 
     if (maskChar === NEXT_CHAR_OPTIONAL) {
       return null;
@@ -388,39 +389,64 @@ function updateValue(el) {
   });
 }
 
-function updateMask(el, mask) {
+function updateMask(el, mask, maskReplacers) {
   options.partiallyUpdate(el, {
-    mask: stringMaskToRegExpMask(mask)
+    mask: stringMaskToRegExpMask(mask, maskReplacers)
   });
 }
 
-var directive = {
-  bind: function bind(el, _ref) {
-    var value = _ref.value;
-    el = queryInputElementInside(el);
-    updateMask(el, value);
-    updateValue(el);
-  },
-  componentUpdated: function componentUpdated(el, _ref2) {
-    var value = _ref2.value,
-        oldValue = _ref2.oldValue;
-    el = queryInputElementInside(el);
-    var isMaskChanged = value !== oldValue;
+function mergeMaskReplacers(maskReplacers) {
+  var mergedMaskReplacers = _objectSpread2({}, defaultMaskReplacers);
 
-    if (isMaskChanged) {
-      updateMask(el, value);
+  if (maskReplacers === null || Array.isArray(maskReplacers) || _typeof(maskReplacers) !== 'object') {
+    return mergedMaskReplacers;
+  }
+
+  return Object.keys(maskReplacers).reduce(function (updatedMaskReplacers, key) {
+    var value = maskReplacers[key];
+
+    if (!(value instanceof Regex)) {
+      return updatedMaskReplacers;
     }
 
-    updateValue(el, isMaskChanged);
-  },
-  unbind: function unbind(el) {
-    el = queryInputElementInside(el);
-    options.remove(el);
-  }
-};
+    updatedMaskReplacers[key] = value;
+    return updatedMaskReplacers;
+  }, mergedMaskReplacers);
+}
+
+function createDirective() {
+  var options = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+  var instanceMaskReplacers = mergeMaskReplacers(options && options.placeholders || null);
+  return {
+    bind: function bind(el, _ref) {
+      var value = _ref.value;
+      el = queryInputElementInside(el);
+      updateMask(el, value, instanceMaskReplacers);
+      updateValue(el);
+    },
+    componentUpdated: function componentUpdated(el, _ref2) {
+      var value = _ref2.value,
+          oldValue = _ref2.oldValue;
+      el = queryInputElementInside(el);
+      var isMaskChanged = value !== oldValue;
+
+      if (isMaskChanged) {
+        updateMask(el, value, instanceMaskReplacers);
+      }
+
+      updateValue(el, isMaskChanged);
+    },
+    unbind: function unbind(el) {
+      el = queryInputElementInside(el);
+      options.remove(el);
+    }
+  };
+}
+var directive = createDirective();
 
 var plugin = (function (Vue) {
-  Vue.directive('mask', directive);
+  var options = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+  Vue.directive('mask', createDirective(options));
 });
 
 export default plugin;

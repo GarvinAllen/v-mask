@@ -6,13 +6,13 @@ import { castToRegexp, makeRegexpOptional } from './utils/regexp';
  * @param {String} stringMask
  * @return {RegExp[]}
  */
-export default function stringMaskToRegExpMask(stringMask) {
+export default function stringMaskToRegExpMask(stringMask, maskReplacers = defaultMaskReplacers) {
   return stringMask
     .split('')
     .map((char, index, array) => {
-      const maskChar = defaultMaskReplacers[char] || char;
+      const maskChar = maskReplacers[char] || char;
       const previousChar = array[index - 1];
-      const previousMaskChar = defaultMaskReplacers[previousChar] || previousChar;
+      const previousMaskChar = maskReplacers[previousChar] || previousChar;
       if (maskChar === NEXT_CHAR_OPTIONAL) {
         return null;
       }
