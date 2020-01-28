@@ -76,12 +76,12 @@ function mergeMaskReplacers(maskReplacers) {
 
 /**
  * Create the Vue directive
- * @param {Object}                  options
- * @param {Object.<string, RegExp>} options.placeholders
+ * @param {Object}                  directiveOptions
+ * @param {Object.<string, RegExp>} directiveOptions.placeholders
  * @return {Object} The Vue directive
  */
-export function createDirective(options = {}) {
-  const instanceMaskReplacers = mergeMaskReplacers((options && options.placeholders) || null);
+export function createDirective(directiveOptions = {}) {
+  const instanceMaskReplacers = mergeMaskReplacers((directiveOptions && directiveOptions.placeholders) || null);
 
   /**
    * Vue directive definition
