@@ -421,9 +421,9 @@ function mergeMaskReplacers(maskReplacers) {
   }, mergedMaskReplacers);
 }
 
-function triggerEvent(context, event) {
+function conditionalTrigger(el, event) {
   if (event) {
-    context.$emit(event);
+    trigger(el, event);
   }
 }
 
@@ -432,17 +432,15 @@ function createDirective() {
   var instanceMaskReplacers = mergeMaskReplacers(directiveOptions && directiveOptions.placeholders || null);
   var maskedEvent = directiveOptions && typeof directiveOptions.maskedEvent === 'string' ? directiveOptions.maskedEvent : defaultMaskedEvent;
   return {
-    bind: function bind(el, _ref, _ref2) {
+    bind: function bind(el, _ref) {
       var value = _ref.value;
-      var context = _ref2.context;
       el = queryInputElementInside(el);
       updateMask(el, value, instanceMaskReplacers);
-      updateValue(el, false, triggerEvent.bind(null, context, maskedEvent));
+      updateValue(el, false, conditionalTrigger.bind(null, el, maskedEvent));
     },
-    componentUpdated: function componentUpdated(el, _ref3, _ref4) {
-      var value = _ref3.value,
-          oldValue = _ref3.oldValue;
-      var context = _ref4.context;
+    componentUpdated: function componentUpdated(el, _ref2) {
+      var value = _ref2.value,
+          oldValue = _ref2.oldValue;
       el = queryInputElementInside(el);
       var isMaskChanged = value !== oldValue;
 
@@ -450,7 +448,7 @@ function createDirective() {
         updateMask(el, value, instanceMaskReplacers);
       }
 
-      updateValue(el, isMaskChanged, triggerEvent.bind(null, context, maskedEvent));
+      updateValue(el, isMaskChanged, conditionalTrigger.bind(null, el, maskedEvent));
     },
     unbind: function unbind(el) {
       el = queryInputElementInside(el);

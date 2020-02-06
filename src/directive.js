@@ -79,13 +79,13 @@ function mergeMaskReplacers(maskReplacers) {
 }
 
 /**
- * Trigger an event on the Vue component
- * @param {Object} context
- * @param {String} event
+ * Conditionally trigger an event on an element
+ * @param {HTMLElement} el
+ * @param {String}      event
  */
-function triggerEvent(context, event) {
+function conditionalTrigger(el, event) {
   if (event) {
-    context.$emit(event);
+    trigger(el, event);
   }
 }
 
@@ -116,11 +116,11 @@ export function createDirective(directiveOptions = {}) {
      * @param {(HTMLInputElement|HTMLElement)} el
      * @param {?String}                        value
      */
-    bind(el, { value }, { context }) {
+    bind(el, { value }) {
       el = queryInputElementInside(el);
 
       updateMask(el, value, instanceMaskReplacers);
-      updateValue(el, false, triggerEvent.bind(null, context, maskedEvent));
+      updateValue(el, false, conditionalTrigger.bind(null, el, maskedEvent));
     },
 
     /**
@@ -134,7 +134,7 @@ export function createDirective(directiveOptions = {}) {
      * @param {?String}                        value
      * @param {?String}                        oldValue
      */
-    componentUpdated(el, { value, oldValue }, { context }) {
+    componentUpdated(el, { value, oldValue }) {
       el = queryInputElementInside(el);
 
       const isMaskChanged = value !== oldValue;
@@ -145,7 +145,7 @@ export function createDirective(directiveOptions = {}) {
       }
 
       // update value
-      updateValue(el, isMaskChanged, triggerEvent.bind(null, context, maskedEvent));
+      updateValue(el, isMaskChanged, conditionalTrigger.bind(null, el, maskedEvent));
     },
 
     unbind(el) {
