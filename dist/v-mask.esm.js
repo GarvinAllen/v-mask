@@ -262,6 +262,7 @@ var defaultMaskReplacers = {
   '?': NEXT_CHAR_OPTIONAL,
   X: /./
 };
+var defaultMaskedEvent = 'masked';
 
 var stringToRegexp = function stringToRegexp(str) {
   var lastSlash = str.lastIndexOf('/');
@@ -353,7 +354,12 @@ function createOptions() {
 var options = createOptions();
 
 function triggerInputUpdate(el) {
-  var fn = trigger.bind(null, el, 'input');
+  var triggerMaskedEvent = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : function () {};
+
+  var fn = function fn() {
+    trigger.call(null, el, 'input');
+    triggerMaskedEvent();
+  };
 
   if (isAndroid && isChrome) {
     setTimeout(fn, 0);
@@ -364,6 +370,7 @@ function triggerInputUpdate(el) {
 
 function updateValue(el) {
   var force = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
+  var triggerMaskedEvent = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : function () {};
   var value = el.value;
 
   var _options$get = options.get(el),
@@ -381,7 +388,7 @@ function updateValue(el) {
         conformedValue = _conformToMask.conformedValue;
 
     el.value = conformedValue;
-    triggerInputUpdate(el);
+    triggerInputUpdate(el, triggerMaskedEvent);
   }
 
   options.partiallyUpdate(el, {
@@ -414,19 +421,28 @@ function mergeMaskReplacers(maskReplacers) {
   }, mergedMaskReplacers);
 }
 
+function triggerEvent(context, event) {
+  if (event) {
+    context.$emit(event);
+  }
+}
+
 function createDirective() {
   var directiveOptions = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
   var instanceMaskReplacers = mergeMaskReplacers(directiveOptions && directiveOptions.placeholders || null);
+  var maskedEvent = directiveOptions && typeof directiveOptions.maskedEvent === 'string' ? directiveOptions.maskedEvent : defaultMaskedEvent;
   return {
-    bind: function bind(el, _ref) {
+    bind: function bind(el, _ref, _ref2) {
       var value = _ref.value;
+      var context = _ref2.context;
       el = queryInputElementInside(el);
       updateMask(el, value, instanceMaskReplacers);
-      updateValue(el);
+      updateValue(el, false, triggerEvent.bind(null, context, maskedEvent));
     },
-    componentUpdated: function componentUpdated(el, _ref2) {
-      var value = _ref2.value,
-          oldValue = _ref2.oldValue;
+    componentUpdated: function componentUpdated(el, _ref3, _ref4) {
+      var value = _ref3.value,
+          oldValue = _ref3.oldValue;
+      var context = _ref4.context;
       el = queryInputElementInside(el);
       var isMaskChanged = value !== oldValue;
 
@@ -434,7 +450,7 @@ function createDirective() {
         updateMask(el, value, instanceMaskReplacers);
       }
 
-      updateValue(el, isMaskChanged);
+      updateValue(el, isMaskChanged, triggerEvent.bind(null, context, maskedEvent));
     },
     unbind: function unbind(el) {
       el = queryInputElementInside(el);

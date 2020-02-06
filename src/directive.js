@@ -5,12 +5,15 @@ import stringMaskToRegExpMask from './stringMaskToRegExpMask';
 import { trigger, queryInputElementInside } from './utils';
 import { isAndroid, isChrome } from './utils/env';
 import createOptions from './createOptions';
-import { defaultMaskReplacers } from './constants';
+import { defaultMaskReplacers, defaultMaskedEvent } from './constants';
 
 const options = createOptions();
 
-function triggerInputUpdate(el) {
-  const fn = trigger.bind(null, el, 'input');
+function triggerInputUpdate(el, triggerMaskedEvent = () => {}) {
+  const fn = () => {
+    trigger.call(null, el, 'input');
+    triggerMaskedEvent();
+  };
   if (isAndroid && isChrome) {
     setTimeout(fn, 0);
   } else {
@@ -22,8 +25,9 @@ function triggerInputUpdate(el) {
  * Event handler
  * @param {HTMLInputElement} el
  * @param {Boolean}          force
+ * @param {Function}         triggerMaskedEvent
  */
-function updateValue(el, force = false) {
+function updateValue(el, force = false, triggerMaskedEvent = () => {}) {
   const { value } = el;
   const { previousValue, mask } = options.get(el);
 
@@ -34,7 +38,7 @@ function updateValue(el, force = false) {
   if (force || isUpdateNeeded) {
     const { conformedValue } = conformToMask(value, mask, { guide: false });
     el.value = conformedValue;
-    triggerInputUpdate(el);
+    triggerInputUpdate(el, triggerMaskedEvent);
   }
 
   options.partiallyUpdate(el, { previousValue: value });
@@ -51,7 +55,7 @@ function updateMask(el, mask, maskReplacers) {
 
 /**
  * Merge custom mask replacers with default mask replacers
- * @param {Object<string, RegExp>} maskReplacers 
+ * @param {Object<string, RegExp>} maskReplacers
  * @return {Object} The merged mask replacers
  */
 function mergeMaskReplacers(maskReplacers) {
@@ -70,18 +74,35 @@ function mergeMaskReplacers(maskReplacers) {
 
     updatedMaskReplacers[key] = value;
 
-    return updatedMaskReplacers
+    return updatedMaskReplacers;
   }, mergedMaskReplacers);
+}
+
+/**
+ * Trigger an event on the Vue component
+ * @param {Object} context
+ * @param {String} event
+ */
+function triggerEvent(context, event) {
+  if (event) {
+    context.$emit(event);
+  }
 }
 
 /**
  * Create the Vue directive
  * @param {Object}                  directiveOptions
  * @param {Object.<string, RegExp>} directiveOptions.placeholders
+ * @param {String}                  directiveOptions.maskedEvent
  * @return {Object} The Vue directive
  */
 export function createDirective(directiveOptions = {}) {
-  const instanceMaskReplacers = mergeMaskReplacers((directiveOptions && directiveOptions.placeholders) || null);
+  const instanceMaskReplacers = mergeMaskReplacers(
+    (directiveOptions && directiveOptions.placeholders) || null,
+  );
+  const maskedEvent = directiveOptions && typeof directiveOptions.maskedEvent === 'string'
+    ? directiveOptions.maskedEvent
+    : defaultMaskedEvent;
 
   /**
    * Vue directive definition
@@ -95,13 +116,13 @@ export function createDirective(directiveOptions = {}) {
      * @param {(HTMLInputElement|HTMLElement)} el
      * @param {?String}                        value
      */
-    bind(el, { value }) {
+    bind(el, { value }, { context }) {
       el = queryInputElementInside(el);
-  
+
       updateMask(el, value, instanceMaskReplacers);
-      updateValue(el);
+      updateValue(el, false, triggerEvent.bind(null, context, maskedEvent));
     },
-  
+
     /**
      * Called after the containing component has updated,
      * but possibly before its children have updated.
@@ -113,20 +134,20 @@ export function createDirective(directiveOptions = {}) {
      * @param {?String}                        value
      * @param {?String}                        oldValue
      */
-    componentUpdated(el, { value, oldValue }) {
+    componentUpdated(el, { value, oldValue }, { context }) {
       el = queryInputElementInside(el);
-  
+
       const isMaskChanged = value !== oldValue;
-  
+
       // update mask first if changed
       if (isMaskChanged) {
         updateMask(el, value, instanceMaskReplacers);
       }
-  
+
       // update value
-      updateValue(el, isMaskChanged);
+      updateValue(el, isMaskChanged, triggerEvent.bind(null, context, maskedEvent));
     },
-  
+
     unbind(el) {
       el = queryInputElementInside(el);
       options.remove(el);

@@ -18,3 +18,9 @@ export const defaultMaskReplacers = {
   '?': NEXT_CHAR_OPTIONAL,
   X: /./,
 };
+
+
+/**
+ * The default masked event
+ */
+export const defaultMaskedEvent = 'masked';
